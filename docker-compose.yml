@@ -1,0 +1,39 @@
+services:
+  flask:
+    build: .
+    container_name: flask
+    networks:
+      - net
+    ports:
+      - 5000:5000
+  redis:
+    image: redis
+    container_name: redis
+    networks:
+      - net
+    ports:
+      - 6379:6379
+  celery_crontab:
+    build: .
+    container_name: celery_crontab
+    networks:
+      - net
+    command: ['celery', '-A', 'tasks.celery_app', 'beat']
+  celery:
+    build: .
+    container_name: celery
+    networks:
+      - net
+    command: ['celery', '-A', 'tasks.celery_app', 'worker', '-l', 'info']
+    environment:
+      - BROKER_URL=redis://redis:6379/0
+      - RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      - flask
+      - redis
+      - celery_crontab
+
+networks:
+  net:
+    name: net
+    driver: bridge
